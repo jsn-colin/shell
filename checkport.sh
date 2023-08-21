@@ -129,7 +129,6 @@ function usage()
        $0 -f checkport.txt
 
 EOF
-
 }
 
 
@@ -216,9 +215,6 @@ if [[ ${iplist} != '' ]];then
                 done
         done
 fi
-
-
-
 
 
 # 如果不使用多进程，则不创建fifo文件
