@@ -218,7 +218,7 @@ if [[ ${iplist} != '' ]];then
     for i in $(cat ${iplist} | grep -v '#' | grep -v '^\s*$')
         do
             ip=$(echo ${i} | awk '{print $1}')
-            if ports != '';then
+            if [[ ${ports} != '' ]];then
                 for port in ${ports}
                     do
                         get_ip_port_list ${ip} ${port}
@@ -233,7 +233,7 @@ fi
 
 # 如果不启动多线程，则不创建fifo文件
 if [[ ${thread} == 1 ]];then
-    echo ${ip_port_list}
+    # echo ${ip_port_list}
     for ip_port in ${ip_port_list}
     do
         check_port ${ip_port}
