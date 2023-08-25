@@ -19,21 +19,21 @@ fi
 }
 
 function check_port()
-{
+{   
     # 传入这个函数的参数是固定的，必须是 ip:port
     ip=$(echo $1 | cut -d ":" -f 1)
     port=$(echo $1 | cut -d ":" -f 2)
-
+    
     rcode=$(echo -e "\n" |timeout --signal=9 $TMOUT  telnet $ip $port  2> /dev/null | grep Connected | wc -l )
-
-
+    
+    
     if [[ $rcode -eq 1 ]];then
         lenth=$(echo ${ip}:${port} | wc -L)
         space_num=$((${WIDTH} - ${lenth}))
         space=' '
         sp=''
         for i in $(seq ${space_num})
-            do
+            do  
                 sp="${sp}${space}"
             done
         trap "myexit;" INT TERM
@@ -70,20 +70,20 @@ function get_ip_port_list(){
         NETMASK=$(echo ${net_mask} | cut -d "/" -f 2)  # 通配符掩码
         RMASK=$((32 - $NETMASK))              # 反掩码
         let "HOSTS_NUM=2**$RMASK"             # 网段主机数
-
-        NET=$(echo ${net_mask} | cut -d "/" -f 1)      # 传入的ip地址
+    
+        NET=$(echo ${net_mask} | cut -d "/" -f 1)      # 传入的ip地址 
         NET_4=$(echo $NET | cut -d "." -f 4)
         YUSHU=$((NET_4 % $HOSTS_NUM))
         NET_4=$(($NET_4 - $YUSHU))            # ip地址第四段的网络位（该网段的起始地址）
-
+        
         NET1_3=$(echo $NET | cut -d '.' -f 1-3)
-
+    
         BOST_4=$(($NET_4 + $HOSTS_NUM))
-
+    
         for i in $(seq $NET_4 $BOST_4)
-            do
+            do    
                 ip_port_list="${ip_port_list} ${NET1_3}.${i}:${localport}"
-            done
+            done 
     fi
 }
 
@@ -120,15 +120,16 @@ function usage()
     -p     指定目的端口       1-65535
     -f     指定文件路径       一行一条记录，格式 "192.168.1.1:80"
     -t     指定超时时间       默认：3s
-    -T     运行的线程数       默认：单进程
-
+    -T     运行的线程数       默认：单线程    
+   
    example:
-       $0 -s 192.168.1.8:80
+       $0 -s 192.168.1.8:80 
        $0 -s 192.168.1.8 -p 80
        $0 -s 192.168.1.8/30 -p 80
        $0 -f checkport.txt
-
+   
 EOF
+   
 }
 
 
@@ -177,19 +178,21 @@ check_cmd telnet
 
 function get_port_list(){
     port_list=''
-            port1=$(expr ${1} / 1  2>&1 > /dev/null)
-            if [[ ${port1} = ${1} ]];then
-        echo ${1}
-        return
-    else
-        start_port=$(echo ${1} | awk -F- '{print $1}')
-        stop_port=$(echo ${1} | awk -F- '{print $2}')
+    if [[ ${1} != '' ]];then
+        port1=$(expr ${1} / 1  2>&1 > /dev/null)
+        if [[ ${port1} = ${1} ]];then
+            echo ${1}
+            return
+        else
+            start_port=$(echo ${1} | awk -F- '{print $1}')
+            stop_port=$(echo ${1} | awk -F- '{print $2}')
 
-        while [[ ${stop_port} -ge ${start_port} ]]
-            do
-                port_list="${port_list} ${start_port}"
-                start_port=$(expr ${start_port} + 1)
-            done
+            while [[ ${stop_port} -ge ${start_port} ]]
+                do
+                    port_list="${port_list} ${start_port}"
+                    start_port=$(expr ${start_port} + 1)
+                done
+        fi
     fi
     echo ${port_list}
 }
@@ -198,10 +201,16 @@ ports=$(get_port_list ${port} )
 
 # 将-s 指定的ip地址加入ip_port_list的列表中
 if [[ ${dip} != '' ]];then
-    for port in ${ports}
-        do
-            get_ip_port_list $dip ${port}
-        done
+    if [[ ${ports} != '' ]];then
+        for port in ${ports}
+            do
+                get_ip_port_list $dip ${port}
+            done
+    else
+        echo 111111
+        get_ip_port_list $dip
+    fi
+
 fi
 # 将-f 指定的文件中的地址和地址段加入ip_port_list的列表中
 
@@ -209,16 +218,22 @@ if [[ ${iplist} != '' ]];then
     for i in $(cat ${iplist} | grep -v '#' | grep -v '^\s*$')
         do
             ip=$(echo ${i} | awk '{print $1}')
-            for port in ${ports}
-                do
-                    get_ip_port_list ${ip} ${port}
-                done
+            if ports != '';then
+                for port in ${ports}
+                    do
+                        get_ip_port_list ${ip} ${port}
+                    done
+            else
+                get_ip_port_list ${ip}
+            fi
+
         done
 fi
 
 
-# 如果不使用多进程，则不创建fifo文件
+# 如果不启动多线程，则不创建fifo文件
 if [[ ${thread} == 1 ]];then
+    echo ${ip_port_list}
     for ip_port in ${ip_port_list}
     do
         check_port ${ip_port}
@@ -233,7 +248,7 @@ else
                     check_port ${ip_port}
                     echo "" >&6
                 } &
-            }
+            } 
         done
         wait
 fi
